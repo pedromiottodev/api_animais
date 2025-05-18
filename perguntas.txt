@@ -1,0 +1,70 @@
+O que exatamente é o Router() do Express e por que usamos ele ao invés de declarar todas as rotas direto no servidor.ts?
+
+Correções e complementos:
+Router() não é exatamente um middleware, mas é uma instância modular de rotas — um mini "servidor" que pode ser montado e importado em partes.
+
+Ele pode conter middlewares, mas não é um por si só.
+
+Você acertou demais ao dizer que:
+
+“Ele guia a aplicação para o verbo correto”
+✔️ Sim! Ele direciona as requisições para os handlers corretos, com base no método (GET, POST...) e no caminho.
+
+💬 Resumo profissional de dev júnior:
+Router() é uma forma de organizar as rotas de maneira modular no Express.
+Ele permite separar as rotas por áreas da aplicação (como usuarios, animais...), mantendo o servidor.ts limpo e focado na configuração principal do app.
+
+Qual a diferença entre uma exportação default e uma exportação nomeada no JavaScript/TypeScript?
+E por que isso importa no nosso projeto com controllers e rotas?
+
+Diferença entre exportação default e exportação nomeada
+
+📦 Exportação default:
+É quando você exporta uma única coisa principal de um arquivo.
+// usuarios.routes.ts
+export default usuariosRoutes
+
+E você importa assim:
+import usuariosRoutes from "./usuarios.routes"
+Sem chaves, porque é default
+
+📦 Exportação nomeada:
+É quando você exporta várias coisas com nome definido.
+// usuarios.controller.ts
+export function criarUsuario() { ... }
+export function listarUsuarios() { ... }
+
+E você importa assim:
+import { criarUsuario, listarUsuarios } from "../controllers/usuarios.controller"
+Com chaves, porque você está dizendo o nome exato do que quer importar
+
+No seu projeto, o que exatamente acontece quando alguém faz um GET /usuarios?
+Passo a passo: quem recebe essa requisição e o que acontece até a resposta chegar?
+
+(Dica: pensa em server.ts → router → usuarios.routes.ts → controller)
+
+passo 1: no arquivo server.ts o middleware irá chamar a função router, e com issso nós iremos para o arquivo index.ts.
+passo 2: no arquivo index.ts nós criamos um router que é quem irá direcionar a aplicação para o caminho correto, e importamos as funções usuariosRoutes e animaisRoutes.
+após isso usaremos o middleware "use" passando dois argumentos, primeiro: se a url for /usuarios, nós iremos chamar nossa função usuariosRoutes que foi importada do arquivo usuarios.routes.ts.
+passo 3: dentro do arquivo usuarios.routes.ts temos um router chamado usuariosRoutes que irá direcionar a aplicação com base no verbo utilizado, caso a rota seja do tipo post iremos chamar a função criarUsuario caso seja do tipo get iremos chamar a função listarUsuarios.
+passo 4: com isso, caímos na pasta controllers no arquivo usuarios.controller.ts, onde temos as funções criarUsuario e listarUsuarios, os controllers farão a validação das informações recebidas, caso nós tenhamos todas as informações necessárias retornaremos com a informação solicitada. neste caso como é uma rota do tipo get iremos ativara a função listarUsuarios, que irá retornar o status code 200 e a lista de usuários em formato json
+
+
+Pequenos ajustes só pra deixar ainda mais técnico:
+Quando você diz “middleware irá chamar a função router”, o mais correto seria:
+
+O server.use(router) registra o roteador principal. Quando uma requisição chega, o Express passa ela pra esse roteador, que então analisa a URL e repassa para o sub-roteador adequado (usuariosRoutes, animaisRoutes...).
+
+Próxima (e última) pergunta dessa rodada:
+Por que colocamos o prefixo /usuarios dentro do router.use("/usuarios", usuariosRoutes) no index.ts?
+
+E qual a vantagem de fazer isso em vez de colocar o caminho completo (/usuarios) em cada rota individual dentro de usuarios.routes.ts?
+
+colocamos /usuarios dentro de router.use("/usuarios", usuariosRoutes) por que dizemos apenas o final da rota a rota completa é [http://localhost:3333/](http://localhost:3333/), /usuarios é o que vem após isso, ele entende que o que vem antes é o padrão e não irá mudar, o que muda é o que vem após a contra barra, então estamos dizendo "caso o final da rota seja /usuarios" faça alguma coisa.
+a vantagem é a modularização, arquivos mais enxutos, quando fazemos isso: router.use("/usuarios", usuariosRoutes)
+todas as rotas que terminarem com /usuarios irão entrar no arquivo usuarios.routes.ts e com isso podemos fazer as validações necessárias com chamando nosso controller, etc....
+Complemento técnico:
+Quando usamos:
+router.use("/usuarios", usuariosRoutes)
+estamos dizendo:
+"Todas as rotas dentro de usuariosRoutes vão responder a caminhos que comecem com /usuarios".

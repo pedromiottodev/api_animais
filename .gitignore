@@ -1,0 +1,16 @@
+# Ignorar variáveis de ambiente
+#Por que ignorar .env?
+#Ele contém senhas, usuários, strings de conexão, #tokens, etc.
+
+#Se for versionado, qualquer pessoa que acessar o #repositório pode usar (ou derrubar) seu banco de #dados.
+.env
+
+# Ignorar dependências
+node_modules/
+
+# Ignorar build do TypeScript (se usar dist/)
+dist/
+
+# Ignorar arquivos temporários de sistemas operacionais e IDEs
+.DS_Store
+*.log
