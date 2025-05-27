@@ -1,23 +1,151 @@
-import {Request, Response} from "express"
+import { Request, Response } from "express"
+import { PrismaClient } from "@prisma/client"
+import { usuarioSchema } from "../schemas/usuario.schema"
 
-export function criarUsuario(req: Request, res: Response){
-    const {nome, email} = req.body
+function validaNome(nome: string): boolean {
+    return /^[A-Za-zÀ-ÿ\s]+$/.test(nome)
+}
 
-    //verificações básicas
-    if(!nome || !email){
-        return res.status(400).json({mensagem: "Nome e e-mail são obrigatórios"})
+
+function validaEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+const prisma = new PrismaClient()
+
+
+export async function listarUsuarios(req: Request, res: Response) {
+
+    try {
+        const usuarios = await prisma.usuario.findMany()
+
+        return res.status(200).json(usuarios)
+    }
+    catch (err: any) {
+        return res.status(500).json({ mensagem: "Erro ao listar usuários" })
+    }
+}
+
+export async function criarUsuario(req: Request, res: Response) {
+    /*
+    O método safeParse() → é a forma segura de validar dados no Zod.
+    O que ele faz:
+    Tenta validar os dados do req.body com base no usuarioSchema.
+    Retorna um objeto com duas propriedades:
+
+    | Propriedade | O que significa                                |
+    | ----------- | ---------------------------------------------- |
+    | `success`   | `true` → passou na validação; `false` → falhou |
+    | `data`      | os dados já **validados e tipados**            |
+    | `error`     | se falhou → contém **detalhes do erro**        |
+
+    */
+    const validacao = usuarioSchema.safeParse(req.body)
+
+    if(!validacao.success){
+        //se a verificação falhar mandamos um json com a lista de erros gerada pelo zod
+        //cada erro descreve qual campo falhou e qual foi o erro
+        return res.status(400).json({erros: validacao.error.errors})
+    }
+    
+    //se a validação der certo o data contém o objeto validado e tipado
+    const {nome, email} = validacao.data
+    try {
+        const novoUsuario = await prisma.usuario.create({ data: { nome, email } })
+        return res.status(201).json({ mensagem: "Usuário criado com sucesso", novoUsuario })
+    }
+    catch (err: any) {
+        console.error("Erro ao criar usuário:", err)
+        //o erro P2002 é gerado pelo prisma quando há uma tentativa de inserir um valor duplicado num campo que deve ser único
+        if (err.code === "P2002") {
+            return res.status(400).json({ mensagem: "E-mail já cadastrado" })
+        }
+        console.error("Erro inesperado ao criar usuário:", err)
+        return res.status(500).json({ mensagem: "Erro ao cadastrar usuário" })
+    }
+}
+
+export async function buscarUsuarioPorId(req: Request, res: Response) {
+    const id = Number(req.params.id)
+
+    if (isNaN(id)) {
+        return res.status(400).json({ mensagem: "ID inválido" })
     }
 
-    //aqui futuramente vai a lógica de salvar no banco de dados
-    return res.status(201).json({mensagem: "Usuário criado com sucesso", dados: {nome, email}
-    })
+    try {
+        const usuarioExiste = await prisma.usuario.findUnique({ where: { id } })
+
+        if (!usuarioExiste) {
+            return res.status(404).json({ mensagem: "Usuário não encontrado" })
+        }
+
+        return res.status(200).json(usuarioExiste)
+    }
+    catch (err: any) {
+        return res.status(500).json({ mensagem: "Erro ao localizar usuário" })
+    }
 }
 
-export function listarUsuarios(req: Request, res: Response){
-    const usuarios = [
-        {id: 1, nome: "Pedro", email: "pedro@gmail.com"},
-        {id: 2, nome: "Tatiane", email: "tatiane@gmail.com"}
-    ]
+export async function atualizarUsuario(req: Request, res: Response) {
+    const id = Number(req.params.id)
+    const { nome, email } = req.body
 
-    return res.status(200).json(usuarios)
+    if (isNaN(id)) {
+        return res.status(400).json({ mensagem: "ID inválido" })
+    }
+
+    if (!nome || !email) {
+        return res.status(400).json({ mensagem: "Nome e e-mail são obrigatórios" })
+    }
+
+    if (!validaNome(nome)) {
+        return res.status(400).json({ mensagem: "Informe apenas letras no nome de usuário" })
+    }
+
+    if (!validaEmail(email))
+        return res.status(400).json({ mensagem: "Informe um e-mail válido, exemplo: usuario@servidor.com" })
+
+    try {
+        const usuarioExiste = await prisma.usuario.findUnique({ where: { id } })
+
+        if (!usuarioExiste) {
+            return res.status(404).json({ mensagem: "Usuário não encontrado" })
+        }
+
+        const usuarioAtualizado = await prisma.usuario.update({
+            where: { id },
+            data: { nome, email }
+        }
+        )
+
+        return res.status(200).json({ mensagem: "Usuário atualizado com sucesso", usuarioAtualizado })
+    }
+    catch (err: any) {
+        return res.status(500).json({ mensagem: "Erro ao atualizar usuário" })
+    }
 }
+
+export async function deletarUsuario(req: Request, res: Response) {
+    const id = Number(req.params.id)
+
+    if (isNaN(id)) {
+        return res.status(400).json({ mensagem: "ID inválido" })
+    }
+
+    try {
+        const usuarioExiste = await prisma.usuario.findUnique({ where: { id } })
+
+        if (!usuarioExiste) {
+            return res.status(404).json({ mensagem: "Usuário não encontrado" })
+        }
+
+        await prisma.usuario.delete({ where: { id } })
+
+        //204 No Content quer dizer "deu tudo certo, mas o servidor não está enviando nenhuma informação no corpo da resposta"
+        return res.status(204).send()
+    }
+    catch (err: any) {
+        return res.status(500).json({ mensagem: "Erro ao deletar usuário" })
+    }
+}
+

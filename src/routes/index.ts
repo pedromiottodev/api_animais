@@ -1,4 +1,4 @@
-import {Router} from "express"
+import { Router } from "express"
 import usuariosRoutes from "./usuarios.routes"
 import animaisRoutes from "./animais.routes"
 

@@ -1,8 +1,9 @@
 import express from "express"
 import router from "./routes"
+import dotenv from "dotenv"
 
 const server = express()
-
+dotenv.config()
 server.use(express.json())
 /*
 1. server.use(router) no servidor.ts
