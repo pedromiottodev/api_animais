@@ -6,7 +6,7 @@ const usuariosRoutes = Router()
 
 
 usuariosRoutes.get("/", autenticaToken, listarUsuarios)
-usuariosRoutes.post("/", autenticaToken, criarUsuario)
+usuariosRoutes.post("/", criarUsuario)
 usuariosRoutes.get("/:id", autenticaToken, buscarUsuarioPorId)
 usuariosRoutes.put("/:id", autenticaToken, atualizarUsuario)
 usuariosRoutes.delete("/:id", autenticaToken, deletarUsuario)

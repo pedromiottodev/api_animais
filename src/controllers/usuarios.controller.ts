@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import { PrismaClient } from "@prisma/client"
 import { usuarioSchema } from "../schemas/usuario.schema"
+import bcrypt from "bcryptjs"
 
 function validaNome(nome: string): boolean {
     return /^[A-Za-zÀ-ÿ\s]+$/.test(nome)
@@ -25,7 +26,7 @@ export async function listarUsuarios(req: Request, res: Response) {
         return res.status(500).json({ mensagem: "Erro ao listar usuários" })
     }
 }
-
+//criar usuario = cadastro
 export async function criarUsuario(req: Request, res: Response) {
     /*
     O método safeParse() → é a forma segura de validar dados no Zod.
@@ -49,9 +50,10 @@ export async function criarUsuario(req: Request, res: Response) {
     }
     
     //se a validação der certo o data contém o objeto validado e tipado
-    const {nome, email} = validacao.data
+    const {nome, email, senha} = validacao.data
     try {
-        const novoUsuario = await prisma.usuario.create({ data: { nome, email } })
+        const senhaHash = await bcrypt.hash(senha, 10)
+        const novoUsuario = await prisma.usuario.create({ data: { nome, email, senha: senhaHash} })
         return res.status(201).json({ mensagem: "Usuário criado com sucesso", novoUsuario })
     }
     catch (err: any) {
