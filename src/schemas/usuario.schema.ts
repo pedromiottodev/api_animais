@@ -9,5 +9,7 @@ export const usuarioSchema = z.object({
     .email("Informe um e-mail válido"),
   
   senha: z.string()
-    .min(6, "A senha deve ter no mínimo 6 caracteres")
+    .min(6, "A senha deve ter no mínimo 6 caracteres"),
+
+  perfil: z.enum(["adotante", "protetor", "admin"]).optional().default("adotante")
 })

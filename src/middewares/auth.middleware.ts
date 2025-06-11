@@ -17,7 +17,7 @@ export function autenticaToken(req: Request, res: Response, next: NextFunction){
 
     if(!token){
         //403 -> não autorizado/não autenticado
-        return res.status(401).json({mensagem: "Token não fornecido"})
+        return res.status(403).json({mensagem: "Token não fornecido"})
     }
 
     try{

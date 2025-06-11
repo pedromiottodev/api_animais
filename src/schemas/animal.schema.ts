@@ -15,5 +15,3 @@ export const animalSchema = z.object({
 })
 
 
-
-

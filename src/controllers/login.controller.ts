@@ -40,7 +40,7 @@ export async function login(req: Request, res: Response){
 
         //jwt.sign(payload(dados que desejo guardar no token), secret, options)
         const token = jwt.sign(
-            {id: usuario.id, email: usuario.email},
+            {id: usuario.id, email: usuario.email, perfil: usuario.perfil},
             JWT_SECRET, {expiresIn: "1h"}
         )
 

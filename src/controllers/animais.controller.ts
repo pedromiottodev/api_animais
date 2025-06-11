@@ -32,7 +32,8 @@ export async function criarAnimal(req: Request, res: Response) {
     const {nome, tipo, idade} = validacao.data
 
     try {
-        const novoAnimal = await prisma.animal.create({ data: { nome, tipo, idade: Number(idade) } })
+        const {id: id_usuario} = (req as any).usuario
+        const novoAnimal = await prisma.animal.create({ data: { nome, tipo, idade: Number(idade), id_usuario}})
 
         return res.status(201).json({ mensagem: "Animal criado com sucesso", novoAnimal })
     }
@@ -66,6 +67,7 @@ export async function buscarAnimalPorId(req: Request, res: Response) {
 export async function atualizarAnimal(req: Request, res: Response) {
     const id = Number(req.params.id)
     const { nome, tipo, idade } = req.body
+    const usuario = req as any
 
     if (isNaN(id)) {
         return res.status(400).json({ mensagem: "ID inválido" })
@@ -88,10 +90,27 @@ export async function atualizarAnimal(req: Request, res: Response) {
     }
     //VERIFICAR SE A IDADE É UM NÚMERO
     try {
-        const animalExiste = await prisma.animal.findUnique({ where: { id } })
+        const animalExiste = await prisma.animal.findUnique({ 
+            where: { id },
+            select: {
+                id: true,
+                nome: true,
+                tipo: true,
+                idade: true,
+                id_usuario: true
+            }
+        })
 
-        if (!animalExiste) {
+        if(!animalExiste) {
             return res.status(404).json({ mensagem: "Animal não encontrado" })
+        }
+
+        if(usuario.usuario.perfil === "adotante") {
+            return res.status(403).json({ mensagem: "Adotantes não têm permissão para alterar animais" });
+        }
+
+        if(animalExiste.id_usuario !== usuario.usuario.id && usuario.usuario.perfil !== "admin"){
+            return res.status(403).json({ mensagem: "Você só pode alterar animais que você cadastrou" })
         }
 
         const animalAtualizado = await prisma.animal.update({
@@ -109,6 +128,7 @@ export async function atualizarAnimal(req: Request, res: Response) {
 
 export async function deletarAnimal(req: Request, res: Response) {
     const id = Number(req.params.id)
+    const usuario = req as any
 
     if (isNaN(id)) {
         return res.status(400).json({ mensagem: "ID inválido" })
@@ -119,6 +139,12 @@ export async function deletarAnimal(req: Request, res: Response) {
 
         if (!animalExiste) {
             return res.status(404).json({ mensagem: "Animal não encontrado" })
+        }
+
+        //verificando se o protetor é o dono do animal
+        if(animalExiste.id_usuario !== usuario.usuario.id && usuario.usuario.perfil !== "admin"){
+            //403 = proibido, sem permissão
+            return res.status(403).json({mensagem: "Você só pode deletar animais que você cadastrou"})
         }
 
         await prisma.animal.delete({ where: { id } })
@@ -135,6 +161,7 @@ export async function atualizarParcialmente(req: Request, res: Response) {
     const id = Number(req.params.id)
     const {nome, tipo, idade} = req.body
     const animalAtualizar: Partial<Animal> = {}
+    const usuario = req as any
 
     if (!Number.isInteger(id) || !Math.sign(id) || isNaN(id)) {
         return res.status(400).json({ mensagem: "ID inválido. Informe um número inteiro e positivo como ID" })
@@ -170,6 +197,10 @@ export async function atualizarParcialmente(req: Request, res: Response) {
 
         if(!animalExiste){
             return res.status(404).json({mensagem: "Animal não encontrado"})
+        }
+
+        if(usuario.usuario.id !== animalExiste.id_usuario && usuario.usuario.perfil !== "admin"){
+            return res.status(403).json({mensagem: "você só pode alterar dados de animais que você cadastrou"})
         }
 
         const animalAtualizado = await prisma.animal.update({where: {id}, data: animalAtualizar})

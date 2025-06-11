@@ -18,6 +18,12 @@ model Usuario {
   nome  String
   email String  @unique
   senha String
+  perfil String @default ("adotante")
+  animais Animal[]
+
+  // Campos para recuperação de senha
+  codigoVerificacao  String?      // Pode ser null se não houver código
+  expiracaoCodigo    DateTime? // Pode ser null também
 }
 
 model Animal {
@@ -25,4 +31,6 @@ model Animal {
   nome   String
   tipo   String
   idade  Int
+  id_usuario Int
+  usuario Usuario @relation(fields: [id_usuario], references: [id])
 }
